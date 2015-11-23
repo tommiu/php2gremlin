@@ -21,7 +21,6 @@ TYPE_PARAM = 'AST_PARAM' # $p1
 TYPE_ASSIGN = 'AST_ASSIGN' # $buzz = true
 TYPE_ASSIGN_REF = 'AST_ASSIGN_REF' # $b = &$a
 TYPE_ASSIGN_OP = 'AST_ASSIGN_OP' # $x += 3
-TYPE_DIM = 'AST_DIM' # $_POST[], $_GET[] -> 
 TYPE_NAME = 'AST_NAME' # names (e.g., name of a called function in call expressions)
 TYPE_VAR = 'AST_VAR' # $v
 TYPE_BINARY_OP = 'AST_BINARY_OP' # e.g., "foo"."bar" or 3+4
@@ -29,6 +28,11 @@ TYPE_ENCAPS_LIST = 'AST_ENCAPS_LIST' # e.g., "blah{$var1}buzz $var2 beep"
 TYPE_INCLUDE_OR_EVAL = 'AST_INCLUDE_OR_EVAL' # eval, include, require
 TYPE_SIMPLE_STRING = 'string'
 TYPE_SIMPLE_INT = 'int'
+# Additions
+TYPE_DIM = 'AST_DIM' # $_POST[], $_GET[]
+TYPE_ISSET = 'AST_ISSET' # isset()
+TYPE_IF = 'AST_IF' # if () {}
+TYPE_IF_ELEM = 'AST_IF_ELEM' # a node for the if block or the else block.
 
 # AST node flags
 # of AST_ASSIGN.*
