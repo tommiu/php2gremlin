@@ -33,11 +33,6 @@ class ASTParser(object):
         # Wait until child finishes.
 #         process.expect(pexpect.EOF)
         output = self.cleanOutput(process.read())
-#         new_output = ""
-#         for _line in iter(output.splitlines()):
-#             new_output += self.parseLine(_line) + "\n"
-#         print new_output
-#         root = ASTNode()
         root = self.string2pythonAST(None, iter(output.splitlines()))
         return root
         
