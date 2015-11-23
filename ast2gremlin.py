@@ -4,8 +4,7 @@ Created on Nov 21, 2015
 @author: Tommi Unruh
 '''
 
-import _constants
-from _constants import TYPE_ASSIGN, TYPE_ENCAPS_LIST, TYPE_ASSIGN_OP
+from _constants import *
 
 class AST2Gremlin(object):
     """
@@ -20,11 +19,13 @@ class AST2Gremlin(object):
         self.cleanAST(ast)
         self.ast = ast
         self.vars = set()
-        
-    def convertPHPAST(self):
+    
+    
+    def convertPHPAST(self, debug=False):
         ast = self.ast
         # Print out AST (for debugging purposes).
-        print ast
+        if debug:
+            print ast
         
         query = self.prepareQuery() + "\n"
         
@@ -37,7 +38,8 @@ class AST2Gremlin(object):
         # The root node is a AST_STMT_LIST, therefore we skip it and 
         # analyse its children.
         first = True
-        for child in ast.getChildren():
+        for i, child in enumerate(ast.getChildren()):
+            query += self.addComment("Child #%d" % i)
             query += self.convertNode(child, first=first)
             first = False
             
@@ -81,6 +83,8 @@ class AST2Gremlin(object):
         i = query[0:i].rfind("\n")
         query = query[0:i]
 
+        query += self.addComment("Prepare end of query.")
+
         # Save linenumber of last node.
         query += "\n" + self.sideEffect("end_linenumber = it.lineno")
         
@@ -89,6 +93,7 @@ class AST2Gremlin(object):
         query += self.sideEffect("filename = it.name")[1:]
         
         # Print result.
+        query += self.addComment("Print all found results.")
         query += self.transform(
                     "printFoundCC(start_linenumber, end_linenumber, filename)"
                     )
@@ -113,13 +118,13 @@ class AST2Gremlin(object):
             #     0: AST_VAR
             #         0: "string"
             #     1: AST_DIM | AST_VAR | AST_ENCAPS_LIST | string | int
-            # Filter left side.
+            query += self.addComment("Node: %s" % (node_type))
+            
+            # Filter node.
             query += self.filter("isAssignment(it)")
             
-            # Filter right side.
-            query += self.filter("it.rval().type.next() == \"%s\"" % (
-                                                    node_children[1].getType()
-                                                    ))
+            # Filter left and right child.
+            query += self.filterChildren(node_children)
             
             # Remember the $var's name.
             query += self.rememberVarName(node_children)
@@ -131,15 +136,18 @@ class AST2Gremlin(object):
             
             # Recursively continue with the right side if necessary.
             if not node_children[1].isPrimitiveType():
+#                 query += self.filter("it.rval()", no_end=True)
                 query += self.convertNode(node_children[1])
                 
-            # Go back in hierarchy.
+            # Prepare next line of code (== next node to parse).
             query += self.setupNextNode()
             
         elif node_type == TYPE_ENCAPS_LIST:
             # A string also containing variables ("example $list").
             # Each child should have the correct type, therefore add
             # filters for them.
+            query += self.addComment("Node: %s" % (node_type))
+            
             for i, child in enumerate(node_children):
                 query += self.filter(
                         "it.rval().ithChildren(%d).type.next() == \"%s\"" % (
@@ -149,13 +157,13 @@ class AST2Gremlin(object):
                 
         elif node_type == TYPE_ASSIGN_OP:
             # $var .= whatever (similar to TYPE_ASSIGN)
-            # Filter left side.
+            query += self.addComment("Node: %s" % (node_type))
+            
+            # Filter node.
             query += self.filter("isConcatAssignment(it)")
             
-            # Filter right side.
-            query += self.filter("it.rval().type.next() == \"%s\"" % (
-                                                    node_children[1].getType()
-                                                    ))
+            # Filter left and right child.
+            query += self.filterChildren(node_children)
             
             # Check if variable name is one of the already defined variables.
             # If yes, then add a filter which checks for equality of
@@ -178,7 +186,31 @@ class AST2Gremlin(object):
             if not node_children[1].isPrimitiveType():
                 query += self.convertNode(node_children[1])
         
-            # Go back in hierarchy.
+            # Prepare next line of code (== next node to parse).
+            query += self.setupNextNode()
+            
+        elif node_type == TYPE_IF:
+            # if (...) {...} else {...}
+            # AST_IF
+            #     0: AST_IF_ELEM
+            #         0: any node (if_condition)
+            #         1: AST_STMT_LIST (code of if-block)
+            #     1: AST_IF_ELEM
+            #         same as child 0.
+            query += self.addComment("Node: %s" % (node_type))
+            
+            # Filter node.
+            query += self.filter("isIfNode(it)")
+            
+            # Filter children.
+            query += self.filterChildren(node_children)
+            
+            for child in node_children:
+                query += self.convertNode(child)
+                
+            # Check if else block is present (== Child 1 exists.)
+            
+            # Prepare next line of code (== next node to parse).
             query += self.setupNextNode()
         
         return query
@@ -192,11 +224,29 @@ class AST2Gremlin(object):
     def setupNextNode(self):
         return "\n.parents()\n.children()" + self.filter("it.childnum == childnumber + 1")[1:] + "\n"
     
-    def filter(self, _filter):
-        return "\n.filter{ %s }" % (_filter)
+    def filter(self, _filter, no_end=False):
+        query = "\n.filter{ %s }" % (_filter)
+        
+        if no_end:
+            return query[:-2]
+        
+        return query
+        
+    def filterChildren(self, children_list):
+        query = self.addComment("Filter node children.")
+        for i, child in enumerate(children_list):
+            query += self.filter("it.ithChildren(%d).type.next() == \"%s\"" % (
+                                            i, child.getType()
+                                            ))
+            
+        return query
     
     def sideEffect(self, sideeffect):
         return "\n.sideEffect{ %s }" % (sideeffect)
     
     def transform(self, transform):
         return "\n.transform{ %s }" % (transform)
+    
+    def addComment(self, comment):
+        return "\n\n// " + comment
+    
