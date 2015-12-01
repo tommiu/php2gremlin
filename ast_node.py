@@ -12,7 +12,10 @@ class ASTNode(object):
     '''
 
 
-    def __init__(self, parent=None, level=0, _type=None, value=None):
+    def __init__(
+            self, parent=None, level=0, _type=None, 
+            value=None, _childnum=0
+            ):
         '''
         Constructor
         '''
@@ -25,6 +28,7 @@ class ASTNode(object):
         self.flags = None
         self.value = value
         self.doc_comment = None
+        self._childnum = _childnum
     
     def addChild(self, ast_node):
         ast_node.setLevel(self.level + 1)
@@ -39,6 +43,9 @@ class ASTNode(object):
     
     def getChildren(self):
         return self.children
+        
+    def getChild(self, i):
+        return self.children[i]
         
     def setLevel(self, level):
         self.level = level
@@ -76,6 +83,12 @@ class ASTNode(object):
     def getValue(self):
         return self.value
     
+    def setChildnum(self, num):
+        self._childnum = num
+        
+    def getChildnum(self):
+        return self._childnum
+    
     def __str__(self, *args, **kwargs):
         indentation = " " * self.level * 4
         result = str(self._type) + "\n"
@@ -83,7 +96,7 @@ class ASTNode(object):
             result += indentation + "flags: " + self.flags + "\n"
         
         for i, child in enumerate(self.children):
-            result += indentation + str(i) + ": " + str(child)
+            result += indentation + str(child.getChildnum()) + ": " + str(child)
         
         return result
     
@@ -115,5 +128,3 @@ class ASTNode(object):
         for i, child in enumerate(self.getParent().getChildren()):
             if child == self:
                 self.getParent().getChildren().pop(i)
-                
-            

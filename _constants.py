@@ -14,7 +14,7 @@ TYPE_STATIC_CALL = 'AST_STATIC_CALL' # bla::foo()
 TYPE_METHOD_CALL = 'AST_METHOD_CALL' # $bla->foo()
 TYPE_PROP = 'AST_PROP' # e.g., $bla->foo
 TYPE_FUNC_DECL = 'AST_FUNC_DECL' # function foo() {}
-TYPE_METHOD = 'AST_METHOD' # class bla { ... function foo() {} ... }
+TYPE_METHOD = 'AST_METHOD' # class bla { ... function foo() {} ... }0
 TYPE_ARG_LIST = 'AST_ARG_LIST' # foo( $a1, $a2, $a3)
 TYPE_PARAM_LIST = 'AST_PARAM_LIST' # function foo( $p1, $p2, $p3) {}
 TYPE_PARAM = 'AST_PARAM' # $p1
@@ -27,12 +27,13 @@ TYPE_BINARY_OP = 'AST_BINARY_OP' # e.g., "foo"."bar" or 3+4
 TYPE_ENCAPS_LIST = 'AST_ENCAPS_LIST' # e.g., "blah{$var1}buzz $var2 beep"
 TYPE_INCLUDE_OR_EVAL = 'AST_INCLUDE_OR_EVAL' # eval, include, require
 TYPE_SIMPLE_STRING = 'string'
-TYPE_SIMPLE_INT = 'int'
+TYPE_SIMPLE_INT = 'integer'
 # Additions
 TYPE_DIM = 'AST_DIM' # $_POST[], $_GET[]
 TYPE_ISSET = 'AST_ISSET' # isset()
 TYPE_IF = 'AST_IF' # if () {}
 TYPE_IF_ELEM = 'AST_IF_ELEM' # a node for the if block or the else block.
+TYPE_NULL = 'NULL'
 
 # AST node flags
 # of AST_ASSIGN.*

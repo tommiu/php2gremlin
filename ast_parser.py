@@ -47,16 +47,14 @@ class ASTParser(object):
                 parsed_node_level = len(next_line)
                 parsed_node_level -= len(next_line.lstrip())
                 parsed_node_level /= 4
-#                 parsed_node_level = next_line.count(indentation)
                 parsed_node = self.line2AST(node_before, next_line)
-                
                 
                 if not parsed_node:
                     # Parsed line was just an addition for 'node_before' (
                     # like flags, name, comments
                     # ). Therefore, we can skip it here.
                     continue
-                
+
                 if not node_before:
                     # parsed_node is the first node (== root node).
                     self.string2pythonAST(parsed_node, php_ast_string_generator)
@@ -91,6 +89,8 @@ class ASTParser(object):
                     for i in xrange(node_before.getLevel() - parsed_node_level):
                         ancestor = ancestor.getParent()
                     
+                    if ancestor == None:
+                        raise Exception("Could not parse file")
                     ancestor.addChild(parsed_node)
                     self.string2pythonAST(parsed_node, php_ast_string_generator)
 
@@ -137,17 +137,21 @@ class ASTParser(object):
                 if _type[0] == '"':
                     # Create string node, but remove its quote-characters.
 #                     print "Stringnode:", _type[1:-1], child_num
-                    node = ASTNode(_type="string", value=_type[1:-1])
+                    node = ASTNode(_type="string", value=_type[1:-1],
+                                   _childnum=child_num)
                 
                 else:
                     # Check if node is just an integer.
                     try: 
                         val = int(_type)
-                        node = ASTNode(_type=TYPE_SIMPLE_INT, value=val)
+                        node = ASTNode(_type=TYPE_SIMPLE_INT, value=val,
+                                       _childnum=child_num)
                         
                     except:
                         # Node is not just an integer
-                        node = ASTNode(_type=_type)
+                        if _type == "null":
+                            _type = TYPE_NULL
+                        node = ASTNode(_type=_type, _childnum=child_num)
                         
                 return node
             

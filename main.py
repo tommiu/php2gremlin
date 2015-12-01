@@ -29,7 +29,7 @@ def main(args):
     if flow[parser.KEY_MODE] == ARGS_CONVERT:
         parser = ASTParser(results_path, parser_script, phpjoern_path)
         ast_root = parser.runPHPParser(getArg(flow, "p", "path"))
-        
+
         if not ast_root:
             print "Could not parse given path! Exit."
             sys.exit()
