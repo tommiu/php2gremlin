@@ -20,7 +20,7 @@ class AST2Gremlin(object):
         self.cleanAST(ast)
         self.ast = ast
         self.vars = set()
-    
+        self.node_count = 0
     
     def removeNullNodes(self):
         query = self.addComment("Remove \"NULL\"-nodes")
@@ -33,13 +33,13 @@ class AST2Gremlin(object):
     
     
     def convertPHPAST(self, debug=False):
+        # Reset counter that counts the number of nodes in a given AST.
+        self.node_count = 0
+        
         ast = self.ast
         # Print out AST (for debugging purposes).
         if debug:
             print ast
-        
-        # Remove "NULL" nodes.
-#         query += self.removeNullNodes()
         
         query = self.addComment("Start query.") + "\n"
         # Get all nodes.
@@ -113,21 +113,21 @@ class AST2Gremlin(object):
         """
         Add generic content we need to the gremlin query.
         """
-        # Add a function to print any found results later on.
-        query = "def printFoundCC(line_start, line_end, file_name) {\n"
-        query += (
-            "\"Found a code clone on lines \" + line_start + \" to \"" 
-            " + line_end + \"\\n\" + \"File: \" + file_name"
-            )
-        query += "\n}\n\n"
-        
+#         # Add a function to print any found results later on.
+#         query = "def printFoundCC(line_start, line_end, file_name) {\n"
+#         query += (
+#             "\"Found a code clone on lines \" + line_start + \" to \"" 
+#             " + line_end + \"\\n\" + \"File: \" + file_name"
+#             )
+#         query += "\n}\n\n"
+
         # Add global variable to track the childnumbers of parsed nodes.
-        query += "childnumber = 0"
+        query = "childnumber = 0"
         
         # Initialize each variable that has been seen in the query.
         query += self.addComment("Initialize variables of query")
         for var in self.vars:
-            query += "\n%s = \"\"" % var
+            query += "\n_%s = \"\"" % var
         
         return query
     
@@ -168,7 +168,8 @@ class AST2Gremlin(object):
         
         # Save filename/
         query += "\n.toFile()"
-        query += self.sideEffect("filename = it.name")[1:]
+        query += "\n.fileToPath()"
+        query += self.sideEffect("filename = it")[1:]
         
         # Print result.
         query += self.addComment("Print all found results.")
@@ -282,7 +283,7 @@ class AST2Gremlin(object):
     
 
     def addSeenVariableFilter(self, traversal, var_name):
-        return self.filter("%s.varToName()%s == %s" % (
+        return self.filter("%s.varToName()%s == _%s" % (
                                         traversal,
                                         ".next()" if traversal != "it" else "",
                                         var_name
@@ -291,15 +292,18 @@ class AST2Gremlin(object):
     
     def convertNode(self, ast, first=None):
         """
-        Check the given AST for its type and build a gremlin query.my
+        Check the given AST for its type and build a gremlin query.
         """
         query = ""
         for traversal, node in self.recursiveFilter("it", ast):
             node_type = node.getType()
-            if traversal == "it":
-                result = "isType(%s, \"%s\")"
-            else:
-                result = "isType(%s.next(), \"%s\")"
+            
+            if node_type == TYPE_SIMPLE_INT or node_type == TYPE_SIMPLE_STRING:
+                # Ignore string or int nodes to allow for simple edits of 
+                # clones.
+                continue
+
+            result = "isType(%s, \"%s\")"
             query += self.filter(result % (traversal, node_type))
             
             # Check if node is of type AST_VAR and its parent
@@ -315,9 +319,6 @@ class AST2Gremlin(object):
                 else:
                     # Variable occured the first time - remember it.
                     query += self.rememberVarName(var_name, traversal)
-            # Add sideEffect to remember the last matched linenumber.
-            # self.sideEffect("current_ln = %s.lineno.next(); if( current_ln > 
-            # end_linenumber) {end_linenumber = current_ln;}" % (query))
 
         return query
     
@@ -380,7 +381,7 @@ class AST2Gremlin(object):
         
         return (
             self.addComment("Remember variable %s" % (var_name)) + 
-            self.sideEffect("%s = %s.varToName().next()" % (
+            self.sideEffect("_%s = %s.varToName().next()" % (
                                                             var_name, traversal
                                                             ))
             )
@@ -393,7 +394,7 @@ class AST2Gremlin(object):
             self.addComment("Check next AST-node (similar to next line of code)") +
             self.filter("it.childnum == childnumber")
             )
-            
+
     def filter(self, _filter, no_end=False):
         query = "\n.filter{ %s }" % (_filter)
         

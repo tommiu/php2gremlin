@@ -27,6 +27,8 @@ def main(args):
         sys.exit()
 
     if flow[parser.KEY_MODE] == ARGS_CONVERT:
+        # Convert mode.
+        # Take a PHP-file path as input and convert it into a gremlin query.
         parser = ASTParser(results_path, parser_script, phpjoern_path)
         ast_root = parser.runPHPParser(getArg(flow, "p", "path"))
 
@@ -37,6 +39,8 @@ def main(args):
         converter = AST2Gremlin(ast_root)
         
         try:
+            # getArg triggers an exception, if the parameter -d/--debug
+            # was not specified.
             getArg(flow, "d", "debug")
             query = converter.convertPHPAST(debug=True)
             

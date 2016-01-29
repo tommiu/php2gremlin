@@ -30,23 +30,29 @@ class ASTParser(object):
                                             1, self.phpjoern_path
                                 ))
         
-        # Wait until child finishes.
-#         process.expect(pexpect.EOF)
         output = self.cleanOutput(process.read())
+        
+        # Set the counter that counts the number of nodes in the AST to 0.
+        self.node_count = 0
+        
+        # Convert given output from 'process' to ASTNode object.
         root = self.string2pythonAST(None, iter(output.splitlines()))
         return root
-        
     
     def string2pythonAST(self, node_before, php_ast_string_generator):
-        # A child is indented by 4 spaces.
-        indentation = " " * 4
-        
         try:
             while True:
                 next_line = php_ast_string_generator.next()
+                self.node_count += 1
+
+                # Calculate the level of the node, by
+                # removing its trailing whitespaces and counting them.
+                # One level is denoted by 4 whitespaces.
                 parsed_node_level = len(next_line)
                 parsed_node_level -= len(next_line.lstrip())
                 parsed_node_level /= 4
+                
+                # Convert line to node object.
                 parsed_node = self.line2AST(node_before, next_line)
                 
                 if not parsed_node:
@@ -119,9 +125,10 @@ class ASTParser(object):
         return output
     
     def line2AST(self, parent, _line):
-        # A child is indented by 4 spaces.
-        child_number = _line.count(" " * 4)
-        
+        """
+        Transforms a single line, given as string '_line' 
+        into an ASTNode-object.
+        """
         # Check if line is of format "%d: string"
         explode = _line.split(":", 1)
         
@@ -176,3 +183,5 @@ class ASTParser(object):
         else:
             return ASTNode(_type=_line)
                     
+    def getNodeCount(self):
+        return self.node_count
